@@ -42,7 +42,7 @@ jobs:
           command: cd backend && npm install
       - run:
           name: Test backend
-          command: cd backend && npx jest
+          command: cd backend && npm test
       - save_cache:
           paths:
             - backend/node_modules
