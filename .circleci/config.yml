@@ -1,15 +1,20 @@
-Here's your updated CircleCI configuration with frontend tests added:
-yamlCopyversion: 2.1
+version: 2.1
 
 workflows:
   version: 2
   build:
     jobs:
-      - build_frontend
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: main
 
 jobs:
-  build_frontend:
-    working_directory: ~/ProjectApplication
+  build:
+    working_directory: ~/BookManagementApplication
     docker:
       - image: cimg/node:18.20.7
     steps:
@@ -32,3 +37,19 @@ jobs:
           paths:
             - ~/.npm
           key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
+      - persist_to_workspace:
+          root: .
+          paths:
+            - frontend/build
+            - backend
+            - deploy.sh
+
+  deploy:
+    docker:
+      - image: cimg/node:18.20.7
+    steps:
+      - attach_workspace:
+          at: ./
+      - run:
+          name: Deploy application
+          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS 'rm -rf BookManagementApplication/; git clone https://github.com/LDNP/BookManagementApplication.git; source BookManagementApplication/deploy.sh'
