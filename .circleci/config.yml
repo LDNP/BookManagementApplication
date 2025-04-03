@@ -25,7 +25,7 @@ jobs:
           command: cd frontend && npm install --legacy-peer-deps
       - run:
           name: Test frontend
-          command: cd frontend && npm test -- --passWithNoTests
+          command: cd frontend && npx jest --passWithNoTests
       - run:
           name: Build React app
           command: cd frontend && npm run build
@@ -42,7 +42,7 @@ jobs:
           command: cd backend && npm install
       - run:
           name: Test backend
-          command: cd backend && npm test
+          command: cd backend && npx jest
       - save_cache:
           paths:
             - backend/node_modules
