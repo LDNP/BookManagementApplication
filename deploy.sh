@@ -9,11 +9,15 @@ sudo npm install -g pm2
 # Navigate to the project directory
 cd ~/BookManagementApplication || exit 1
 
+# Add SSL certificates
+cd backend
+echo $PRIVATE_KEY > privatekey.pem
+echo $SERVER > server.crt
+
 # Stop the current running application (if running)
 pm2 stop book_app || true
 
 # Install backend dependencies
-cd backend
 npm install
 
 # Go to frontend, install dependencies and build
