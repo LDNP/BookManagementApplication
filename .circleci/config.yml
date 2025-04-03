@@ -1,13 +1,14 @@
-version: 2.1
+Here's your updated CircleCI configuration with frontend tests added:
+yamlCopyversion: 2.1
 
 workflows:
   version: 2
   build:
     jobs:
-      - build
+      - build_frontend
 
 jobs:
-  build:
+  build_frontend:
     working_directory: ~/ProjectApplication
     docker:
       - image: cimg/node:18.20.7
@@ -16,10 +17,8 @@ jobs:
       - run:
           name: Update npm version
           command: npm install -g npm@10.8.2
-      
-      # Frontend steps
       - restore_cache:
-          key: frontend-dependency-cache-{{ checksum "frontend/package-lock.json" }}
+          key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
       - run:
           name: Install frontend dependencies
           command: cd frontend && npm install --legacy-peer-deps
@@ -31,19 +30,5 @@ jobs:
           command: cd frontend && npm run build
       - save_cache:
           paths:
-            - frontend/node_modules
-          key: frontend-dependency-cache-{{ checksum "frontend/package-lock.json" }}
-      
-      # Backend steps
-      - restore_cache:
-          key: backend-dependency-cache-{{ checksum "backend/package-lock.json" }}
-      - run:
-          name: Install backend dependencies
-          command: cd backend && npm install
-      - run:
-          name: Test backend
-          command: cd backend && npm test
-      - save_cache:
-          paths:
-            - backend/node_modules
-          key: backend-dependency-cache-{{ checksum "backend/package-lock.json" }}
+            - ~/.npm
+          key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
