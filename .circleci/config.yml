@@ -4,10 +4,10 @@ workflows:
   version: 2
   build:
     jobs:
-      - build
+      - build 
 
 jobs:
-  build_frontend:
+  build:
     working_directory: ~/ProjectApplication
     docker:
       - image: cimg/node:18.20.7
