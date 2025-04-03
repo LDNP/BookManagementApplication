@@ -1,0 +1,59 @@
+version: 2.1
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build_frontend
+      - build_backend:
+          requires:
+            - build_frontend
+          filters:
+            branches:
+              only:
+                - main
+
+jobs:
+  build_frontend:
+    working_directory: ~/ProjectApplication/frontend
+    docker:
+      - image: cimg/node:18.20.7
+    steps:
+      - checkout
+      - run:
+          name: Update npm version
+          command: npm install -g npm@10.8.2
+      - restore_cache:
+          key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
+      - run:
+          name: Install frontend dependencies
+          command: npm install --legacy-peer-deps
+      - run:
+          name: Build React app
+          command: npm run build
+      - save_cache:
+          paths:
+            - ~/.npm
+          key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
+
+  build_backend:
+    working_directory: ~/ProjectApplication/backend
+    docker:
+      - image: cimg/node:18.20.7
+    steps:
+      - checkout
+      - run:
+          name: Update npm version
+          command: npm install -g npm@10.8.2
+      - restore_cache:
+          key: dependency-cache-{{ checksum "backend/package-lock.json" }}
+      - run:
+          name: Install backend dependencies
+          command: npm install
+      - run:
+          name: Build Backend app
+          command: npm run build
+      - save_cache:
+          paths:
+            - ~/.npm
+          key: dependency-cache-{{ checksum "backend/package-lock.json" }}
