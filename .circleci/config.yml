@@ -4,7 +4,7 @@ workflows:
   version: 2
   build:
     jobs:
-      - build 
+      - build
 
 jobs:
   build:
@@ -16,15 +16,34 @@ jobs:
       - run:
           name: Update npm version
           command: npm install -g npm@10.8.2
+      
+      # Frontend steps
       - restore_cache:
-          key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
+          key: frontend-dependency-cache-{{ checksum "frontend/package-lock.json" }}
       - run:
           name: Install frontend dependencies
           command: cd frontend && npm install --legacy-peer-deps
+      - run:
+          name: Test frontend
+          command: cd frontend && npm test -- --passWithNoTests
       - run:
           name: Build React app
           command: cd frontend && npm run build
       - save_cache:
           paths:
-            - ~/.npm
-          key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
+            - frontend/node_modules
+          key: frontend-dependency-cache-{{ checksum "frontend/package-lock.json" }}
+      
+      # Backend steps
+      - restore_cache:
+          key: backend-dependency-cache-{{ checksum "backend/package-lock.json" }}
+      - run:
+          name: Install backend dependencies
+          command: cd backend && npm install
+      - run:
+          name: Test backend
+          command: cd backend && npm test
+      - save_cache:
+          paths:
+            - backend/node_modules
+          key: backend-dependency-cache-{{ checksum "backend/package-lock.json" }}
