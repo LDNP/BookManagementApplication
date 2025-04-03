@@ -15,7 +15,7 @@ workflows:
 
 jobs:
   build_frontend:
-    working_directory: ~/ProjectApplication/frontend
+    working_directory: ~/ProjectApplication
     docker:
       - image: cimg/node:18.20.7
     steps:
@@ -27,17 +27,17 @@ jobs:
           key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
       - run:
           name: Install frontend dependencies
-          command: npm install --legacy-peer-deps
+          command: cd frontend && npm install --legacy-peer-deps
       - run:
           name: Build React app
-          command: npm run build
+          command: cd frontend && npm run build
       - save_cache:
           paths:
             - ~/.npm
           key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
 
   build_backend:
-    working_directory: ~/ProjectApplication/backend
+    working_directory: ~/ProjectApplication
     docker:
       - image: cimg/node:18.20.7
     steps:
@@ -49,10 +49,10 @@ jobs:
           key: dependency-cache-{{ checksum "backend/package-lock.json" }}
       - run:
           name: Install backend dependencies
-          command: npm install
+          command: cd backend && npm install
       - run:
           name: Build Backend app
-          command: npm run build
+          command: cd backend && npm run build
       - save_cache:
           paths:
             - ~/.npm
