@@ -10,9 +10,9 @@ const initSqlJs = require('sql.js');
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
-// Configure CORS to allow all origins in production
+// Configure CORS for production
 const corsOptions = {
-  origin: isProd ? '*' : 'http://localhost:3000',
+  origin: 'https://34.251.18.39:8443',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
@@ -182,7 +182,6 @@ if (isProd) {
 
 // Start server
 const PORT = process.env.PORT || 8443;
-const EC2_PUBLIC_DNS = process.env.EC2_PUBLIC_DNS || '34.251.18.39';
 
 // Start server after database initialization
 async function startServer() {
@@ -199,14 +198,14 @@ async function startServer() {
       };
   
       const server = https.createServer(options, app).listen(PORT, '0.0.0.0', () => {
-        console.log(`HTTPS server running on https://${EC2_PUBLIC_DNS}:${PORT}`);
+        console.log(`HTTPS server running on port ${PORT}`);
       });
   
       module.exports = { app, server, db };
     } else {
       console.log("SSL certificates not found, starting HTTP server instead");
       const server = app.listen(PORT, '0.0.0.0', () => {
-        console.log(`HTTP server running at http://${EC2_PUBLIC_DNS}:${PORT}`);
+        console.log(`HTTP server running on port ${PORT}`);
       });
       module.exports = { app, server, db };
     }
@@ -214,7 +213,7 @@ async function startServer() {
     console.error("Error starting HTTPS server:", error);
     console.log("Falling back to HTTP server");
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`HTTP server running at http://${EC2_PUBLIC_DNS}:${PORT}`);
+      console.log(`HTTP server running on port ${PORT}`);
     });
     module.exports = { app, server, db };
   }
