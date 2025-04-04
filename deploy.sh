@@ -13,18 +13,22 @@ pm2 stop book_app || true
 # Set environment 
 export NODE_ENV=production  
 
+# Ensure backend directory exists
+sudo mkdir -p backend
+sudo chown ubuntu:ubuntu backend
+
 # Create SSL certificates from environment variables 
 echo "Creating SSL private key from environment variable" 
-echo "-----BEGIN PRIVATE KEY-----" > backend/privatekey.pem 
-echo "$PRIVATE_KEY" >> backend/privatekey.pem 
-echo "-----END PRIVATE KEY-----" >> backend/privatekey.pem 
-chmod 400 backend/privatekey.pem  
+sudo bash -c "echo \"-----BEGIN PRIVATE KEY-----\" > backend/privatekey.pem"
+sudo bash -c "echo \"$PRIVATE_KEY\" >> backend/privatekey.pem"
+sudo bash -c "echo \"-----END PRIVATE KEY-----\" >> backend/privatekey.pem"
+sudo chmod 400 backend/privatekey.pem
 
 echo "Creating SSL certificate from environment variable" 
-echo "-----BEGIN CERTIFICATE-----" > backend/server.crt 
-echo "$SERVER" >> backend/server.crt 
-echo "-----END CERTIFICATE-----" >> backend/server.crt 
-chmod 400 backend/server.crt  
+sudo bash -c "echo \"-----BEGIN CERTIFICATE-----\" > backend/server.crt"
+sudo bash -c "echo \"$SERVER\" >> backend/server.crt"
+sudo bash -c "echo \"-----END CERTIFICATE-----\" >> backend/server.crt"
+sudo chmod 400 backend/server.crt
 
 # Verify certificates exist 
 if [[ ! -f backend/privatekey.pem || ! -f backend/server.crt ]]; then   
