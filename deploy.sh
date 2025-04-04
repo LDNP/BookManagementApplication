@@ -10,26 +10,22 @@ cd ~/BookManagementApplication || exit 1
 # Stop the app if running
 pm2 stop book_app || true
 
-# Set environment
+# Set environment 
 export NODE_ENV=production
 
-# Create SSL certificates from environment variables
-echo "Creating SSL private key from environment variable"
-echo "-----BEGIN PRIVATE KEY-----" > backend/privatekey.pem
-echo "$PRIVATE_KEY" >> backend/privatekey.pem
-echo "-----END PRIVATE KEY-----" >> backend/privatekey.pem
+# Decode base64 SSL certificates
+echo "Decoding and creating SSL private key"
+echo "$PRIVATE_KEY" | base64 -d > backend/privatekey.pem
 chmod 400 backend/privatekey.pem
 
-echo "Creating SSL certificate from environment variable"
-echo "-----BEGIN CERTIFICATE-----" > backend/server.crt
-echo "$SERVER" >> backend/server.crt
-echo "-----END CERTIFICATE-----" >> backend/server.crt
+echo "Decoding and creating SSL certificate"
+echo "$SERVER" | base64 -d > backend/server.crt
 chmod 400 backend/server.crt
 
-# Verify certificates exist
-if [[ ! -f backend/privatekey.pem || ! -f backend/server.crt ]]; then
-  echo "SSL certificate files could not be created."
-  exit 1
+# Verify certificates exist and are not empty
+if [[ ! -s backend/privatekey.pem || ! -s backend/server.crt ]]; then
+   echo "SSL certificate files could not be created or are empty."
+   exit 1
 fi
 
 # Install backend dependencies
