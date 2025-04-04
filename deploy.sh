@@ -4,19 +4,12 @@ echo "Starting deploy script..."
 
 mkdir -p backend
 
-# Create SSL certificate from environment variable
-echo "Creating SSL certificate from \$SERVER"
-echo "-----BEGIN CERTIFICATE-----" > backend/server.crt
-echo "$SERVER" >> backend/server.crt
-echo "-----END CERTIFICATE-----" >> backend/server.crt
+# Write raw SSL certificate and key to files
+echo "Creating SSL certificate and private key from environment variables"
+echo "$SERVER" > backend/server.crt
+echo "$KEY" > backend/privatekey.pem
 
-# Create SSL private key from environment variable
-echo "Creating private key from \$KEY"
-echo "-----BEGIN PRIVATE KEY-----" > backend/privatekey.pem
-echo "$KEY" >> backend/privatekey.pem
-echo "-----END PRIVATE KEY-----" >> backend/privatekey.pem
-
-# Set correct ownership and permissions
+# Set correct permissions and ownership
 echo "Setting permissions and ownership..."
 chown ubuntu:ubuntu backend/server.crt backend/privatekey.pem
 chmod 644 backend/server.crt
@@ -57,10 +50,10 @@ SSL_KEY_PATH=./privatekey.pem
 SSL_CERT_PATH=./server.crt
 EOL
 
-# Start app with PM2
+# Start or restart the app with PM2
 cd ../backend
 echo "Starting app with PM2..."
-pm2 start server.js --name book_app
+pm2 restart book_app || pm2 start server.js --name book_app
 pm2 save
 
 echo "Deployment complete."
