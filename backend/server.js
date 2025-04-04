@@ -1,11 +1,11 @@
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 const initSqlJs = require('sql.js');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -171,20 +171,10 @@ const PORT = process.env.PORT || 8443;
 async function startServer() {
   await initializeDatabase();
 
-const keyPath = path.resolve(__dirname, process.env.HTTPS_KEY_PATH || 'privatekey.pem');
-const certPath = path.resolve(__dirname, process.env.HTTPS_CERT_PATH || 'server.crt');
+  const keyPath = path.resolve(__dirname, 'privatekey.pem');
+  const certPath = path.resolve(__dirname, 'server.crt');
 
   try {
-    // Decode base64 private key from env
-    if (process.env.PRIVATE_KEY) {
-      fs.writeFileSync(keyPath, Buffer.from(process.env.PRIVATE_KEY, 'base64').toString('utf8'));
-    }
-
-    // Decode base64 server certificate from env
-  if (process.env.SERVER) {
-  fs.writeFileSync(certPath, Buffer.from(process.env.SERVER, 'base64').toString('utf8'));
-    }
-
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
       const options = {
         key: fs.readFileSync(keyPath),
@@ -198,6 +188,7 @@ const certPath = path.resolve(__dirname, process.env.HTTPS_CERT_PATH || 'server.
       module.exports = { app, server, db };
     } else {
       console.log("SSL certificates not found, starting HTTP server instead");
+
       const server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`HTTP server running on port ${PORT}`);
       });
@@ -207,6 +198,7 @@ const certPath = path.resolve(__dirname, process.env.HTTPS_CERT_PATH || 'server.
   } catch (error) {
     console.error("Error starting HTTPS server:", error);
     console.log("Falling back to HTTP server");
+
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`HTTP server running on port ${PORT}`);
     });
