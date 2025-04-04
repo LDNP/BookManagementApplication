@@ -5,7 +5,8 @@ import axios from 'axios';
 const API = process.env.REACT_APP_API_BASE || 'https://34.251.18.39:8443';
 
 function App() {
-  const [books, setBooks] = useState([]);
+  const [allBooks, setAllBooks] = useState([]); // Store all books
+  const [displayedBooks, setDisplayedBooks] = useState([]); // Books to display
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -17,26 +18,29 @@ function App() {
     fetchBooks();
   }, []);
 
-  // Search effect
+  // Client-side search implementation
   useEffect(() => {
     if (!searchTerm.trim()) {
-      fetchBooks(); // Fetch all books when search is cleared
+      setDisplayedBooks(allBooks); // Show all books when search is empty
       return;
     }
 
-    axios
-      .get(`${API}/books/search?q=${searchTerm.trim()}`)
-      .then(res => setBooks(res.data))
-      .catch(err => {
-        console.error('Search error:', err);
-        // Optionally show an error message to the user
-      });
-  }, [searchTerm]);
+    const lowercaseSearch = searchTerm.toLowerCase().trim();
+    const filtered = allBooks.filter(book => 
+      book.title.toLowerCase().includes(lowercaseSearch) ||
+      book.author.toLowerCase().includes(lowercaseSearch)
+    );
+    
+    setDisplayedBooks(filtered);
+  }, [searchTerm, allBooks]);
 
-  // Fetch books function
+  // Fetch books function - still uses the backend API
   const fetchBooks = () => {
     axios.get(`${API}/books`)
-      .then(res => setBooks(res.data))
+      .then(res => {
+        setAllBooks(res.data);
+        setDisplayedBooks(res.data);
+      })
       .catch(err => {
         console.error('Error fetching books:', err);
         // Optionally show an error message to the user
@@ -50,22 +54,29 @@ function App() {
     if (isEditing) {
       axios.put(`${API}/books/${currentBookId}`, book)
         .then(res => {
-          setBooks(books.map(b => (b.id === currentBookId ? res.data : b)));
+          const updatedBook = res.data;
+          // Update both book lists
+          const updatedAllBooks = allBooks.map(b => 
+            b.id === currentBookId ? updatedBook : b
+          );
+          setAllBooks(updatedAllBooks);
+          
+          // The displayed books list will be automatically updated by the search effect
           resetForm();
         })
         .catch(err => {
           console.error('Update error:', err);
-          // Optionally show an error message to the user
         });
     } else {
       axios.post(`${API}/books`, book)
         .then(res => {
-          setBooks([...books, res.data]);
+          // Add to all books
+          setAllBooks([...allBooks, res.data]);
+          // The displayed books list will be automatically updated by the search effect
           resetForm();
         })
         .catch(err => {
           console.error('Add book error:', err);
-          // Optionally show an error message to the user
         });
     }
   };
@@ -80,11 +91,13 @@ function App() {
   const handleDelete = (id) => {
     axios.delete(`${API}/books/${id}`)
       .then(() => {
-        setBooks(books.filter(b => b.id !== id));
+        // Remove from all books
+        const updatedAllBooks = allBooks.filter(b => b.id !== id);
+        setAllBooks(updatedAllBooks);
+        // The displayed books list will be automatically updated by the search effect
       })
       .catch(err => {
         console.error('Delete error:', err);
-        // Optionally show an error message to the user
       });
   };
 
@@ -114,6 +127,9 @@ function App() {
             required 
           />
           <button type="submit">{isEditing ? 'Update' : 'Add'} Book</button>
+          {isEditing && (
+            <button type="button" onClick={resetForm}>Cancel</button>
+          )}
         </form>
       </div>
 
@@ -131,8 +147,8 @@ function App() {
         />
 
         <ul>
-          {books.length > 0 ? (
-            books.map(book => (
+          {displayedBooks.length > 0 ? (
+            displayedBooks.map(book => (
               <li key={book.id}>
                 <strong>{book.title}</strong> by {book.author}
                 <button onClick={() => handleEdit(book)}>Edit</button>
