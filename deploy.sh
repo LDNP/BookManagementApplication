@@ -1,8 +1,4 @@
-#!/usr/bin/env bash
-
-# Ensure backend directory exists with correct permissions
-sudo mkdir -p ~/BookManagementApplication/backend
-sudo chown -R ubuntu:ubuntu ~/BookManagementApplication/backend
+#!/usr/bin/env bash  
 
 # Update and install dependencies 
 sudo apt update && sudo apt install -y nodejs npm
@@ -18,28 +14,23 @@ pm2 stop book_app || true
 export NODE_ENV=production  
 
 # Create SSL certificates from environment variables 
-echo "Creating SSL private key from environment variable"
-# Use sudo to ensure write permissions
-sudo bash -c "printf -- \"-----BEGIN PRIVATE KEY-----\n\" > ~/BookManagementApplication/backend/privatekey.pem"
-sudo bash -c "printf \"%s\n\" \"$PRIVATE_KEY\" >> ~/BookManagementApplication/backend/privatekey.pem"
-sudo bash -c "printf -- \"-----END PRIVATE KEY-----\n\" >> ~/BookManagementApplication/backend/privatekey.pem"
-sudo chmod 400 ~/BookManagementApplication/backend/privatekey.pem
+echo "Creating SSL private key from environment variable" 
+echo "-----BEGIN PRIVATE KEY-----" > backend/privatekey.pem 
+echo "$PRIVATE_KEY" >> backend/privatekey.pem 
+echo "-----END PRIVATE KEY-----" >> backend/privatekey.pem 
+chmod 400 backend/privatekey.pem  
 
-echo "Creating SSL certificate from environment variable"
-sudo bash -c "printf -- \"-----BEGIN CERTIFICATE-----\n\" > ~/BookManagementApplication/backend/server.crt"
-sudo bash -c "printf \"%s\n\" \"$SERVER\" >> ~/BookManagementApplication/backend/server.crt"
-sudo bash -c "printf -- \"-----END CERTIFICATE-----\n\" >> ~/BookManagementApplication/backend/server.crt"
-sudo chmod 400 ~/BookManagementApplication/backend/server.crt
+echo "Creating SSL certificate from environment variable" 
+echo "-----BEGIN CERTIFICATE-----" > backend/server.crt 
+echo "$SERVER" >> backend/server.crt 
+echo "-----END CERTIFICATE-----" >> backend/server.crt 
+chmod 400 backend/server.crt  
 
-# Verify certificates exist and are not empty
-if [[ ! -s ~/BookManagementApplication/backend/privatekey.pem || ! -s ~/BookManagementApplication/backend/server.crt ]]; then   
-  echo "SSL certificate files could not be created or are empty."   
+# Verify certificates exist 
+if [[ ! -f backend/privatekey.pem || ! -f backend/server.crt ]]; then   
+  echo "SSL certificate files could not be created."   
   exit 1 
 fi  
-
-# Ensure ubuntu user owns the files
-sudo chown ubuntu:ubuntu ~/BookManagementApplication/backend/privatekey.pem
-sudo chown ubuntu:ubuntu ~/BookManagementApplication/backend/server.crt
 
 # Install backend dependencies 
 cd backend 

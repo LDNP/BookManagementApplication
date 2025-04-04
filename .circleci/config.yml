@@ -46,4 +46,4 @@ jobs:
           at: ./       
       - run:           
           name: Deploy application           
-          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export SERVER=\"$SERVER\"; export PRIVATE_KEY=\"$PRIVATE_KEY\"; rm -rf BookManagementApplication/; git clone https://github.com/LDNP/BookManagementApplication.git; source BookManagementApplication/deploy.sh"
+          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export SERVER=\"$SERVER\"; export PRIVATE_KEY=\"$PRIVATE_KEY\"; rm -rf BookManagementApplication/; git clone https://github.com/LDNP/BookManagementApplication.git; bash BookManagementApplication/deploy.sh"
