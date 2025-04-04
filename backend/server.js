@@ -141,24 +141,34 @@ if (isProd) {
 // Start server
 const PORT = process.env.PORT || 8443;
 
-if (isProd) {
-  const sslPath = path.join(__dirname, 'privatekey.pem');
+// Changed to always use HTTPS if certificates exist, regardless of NODE_ENV
+try {
+  const sslPath = path.join(__dirname, 'private.pem'); // Changed from privatekey.pem to private.pem
   const certPath = path.join(__dirname, 'server.crt');
+  
+  if (fs.existsSync(sslPath) && fs.existsSync(certPath)) {
+    const options = {
+      key: fs.readFileSync(sslPath),
+      cert: fs.readFileSync(certPath),
+    };
 
-  const options = {
-    key: fs.readFileSync(sslPath),
-    cert: fs.readFileSync(certPath),
-  };
+    const server = https.createServer(options, app).listen(PORT, () => {
+      console.log(`HTTPS server running on https://localhost:${PORT}`);
+    });
 
-  const server = https.createServer(options, app).listen(PORT, () => {
-    console.log(`Production HTTPS server running on https://localhost:${PORT}`);
-  });
-
-  module.exports = { app, server, db };
-} else {
+    module.exports = { app, server, db };
+  } else {
+    console.log("SSL certificates not found, starting HTTP server instead");
+    const server = app.listen(PORT, () => {
+      console.log(`HTTP server running at http://localhost:${PORT}`);
+    });
+    module.exports = { app, server, db };
+  }
+} catch (error) {
+  console.error("Error starting HTTPS server:", error);
+  console.log("Falling back to HTTP server");
   const server = app.listen(PORT, () => {
-    console.log(`Dev server running at http://localhost:${PORT}`);
+    console.log(`HTTP server running at http://localhost:${PORT}`);
   });
-
   module.exports = { app, server, db };
 }
