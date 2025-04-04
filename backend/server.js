@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -171,8 +171,8 @@ const PORT = process.env.PORT || 8443;
 async function startServer() {
   await initializeDatabase();
 
-  const keyPath = path.join(__dirname, 'privatekey.pem');
-  const certPath = path.join(__dirname, 'server.crt');
+const keyPath = path.resolve(__dirname, process.env.HTTPS_KEY_PATH || 'privatekey.pem');
+const certPath = path.resolve(__dirname, process.env.HTTPS_CERT_PATH || 'server.crt');
 
   try {
     // Decode base64 private key from env
