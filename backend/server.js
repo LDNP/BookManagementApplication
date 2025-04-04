@@ -182,7 +182,7 @@ if (isProd) {
 
 // Start server
 const PORT = process.env.PORT || 8443;
-const EC2_PUBLIC_DNS = process.env.EC2_PUBLIC_DNS || 'your-ec2-public-dns';
+const EC2_PUBLIC_DNS = process.env.EC2_PUBLIC_DNS || '34.251.18.39';
 
 // Start server after database initialization
 async function startServer() {
