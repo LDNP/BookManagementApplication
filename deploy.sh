@@ -15,9 +15,9 @@ pm2 stop book_app || true
 # Set environment variable for production mode
 export NODE_ENV=production
 
-# Write SSL certificates to files (with proper quoting)
-echo "$PRIVATE_KEY" > backend/privatekey.pem
-echo "$SERVER" > backend/server.crt
+# Decode base64 SSL certificates and write to files
+echo "$PRIVATE_KEY" | base64 -d > backend/privatekey.pem
+echo "$SERVER" | base64 -d > backend/server.crt
 
 # Set proper permissions on key files
 chmod 600 backend/privatekey.pem

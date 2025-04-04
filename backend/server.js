@@ -16,7 +16,6 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
-
 app.use(bodyParser.json());
 
 let db;
@@ -26,6 +25,7 @@ async function initializeDatabase() {
   try {
     SQL = await initSqlJs();
     db = new SQL.Database();
+
     db.run(`CREATE TABLE IF NOT EXISTS books (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -171,21 +171,19 @@ const PORT = process.env.PORT || 8443;
 async function startServer() {
   await initializeDatabase();
 
-  try {
-    if (process.env.PRIVATE_KEY && process.env.SERVER) {
-      const keyPath = path.join(__dirname, 'privatekey.pem');
-      const certPath = path.join(__dirname, 'server.crt');
+  const keyPath = path.join(__dirname, 'privatekey.pem');
+  const certPath = path.join(__dirname, 'server.crt');
 
-      fs.writeFileSync(keyPath, process.env.PRIVATE_KEY.replace(/\\n/g, '\n'));
-      fs.writeFileSync(certPath, process.env.SERVER.replace(/\\n/g, '\n'));
+  try {
+    // Decode and write base64 cert/key from env
+    if (process.env.PRIVATE_KEY && process.env.SERVER) {
+      fs.writeFileSync(keyPath, Buffer.from(process.env.PRIVATE_KEY, 'base64').toString('utf8'));
+      fs.writeFileSync(certPath, Buffer.from(process.env.SERVER, 'base64').toString('utf8'));
     }
 
-    const sslPath = process.env.HTTPS_KEY_PATH || path.join(__dirname, 'privatekey.pem');
-    const certPath = process.env.HTTPS_CERT_PATH || path.join(__dirname, 'server.crt');
-
-    if (fs.existsSync(sslPath) && fs.existsSync(certPath)) {
+    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
       const options = {
-        key: fs.readFileSync(sslPath),
+        key: fs.readFileSync(keyPath),
         cert: fs.readFileSync(certPath),
       };
 
@@ -199,6 +197,7 @@ async function startServer() {
       const server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`HTTP server running on port ${PORT}`);
       });
+
       module.exports = { app, server, db };
     }
   } catch (error) {
@@ -207,6 +206,7 @@ async function startServer() {
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`HTTP server running on port ${PORT}`);
     });
+
     module.exports = { app, server, db };
   }
 }
