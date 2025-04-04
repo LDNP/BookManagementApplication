@@ -1,60 +1,60 @@
-#!/usr/bin/env bash  
+#!/bin/bash
 
-# Update and install dependencies 
-sudo apt update && sudo apt install -y nodejs npm
-sudo npm install -g pm2  
+echo "Starting deploy script..."
 
-# Navigate to the project directory 
-cd ~/BookManagementApplication || exit 1  
-
-# Stop the app if running 
-pm2 stop book_app || true  
-
-# Set environment 
-export NODE_ENV=production  
-
-# Ensure backend directory exists
-sudo mkdir -p backend
-sudo chown ubuntu:ubuntu backend
-
-# Create SSL certificates from environment variables 
-echo "Creating SSL private key from environment variable" 
-sudo bash -c "echo \"-----BEGIN PRIVATE KEY-----\" > backend/privatekey.pem"
-sudo bash -c "echo \"$PRIVATE_KEY\" >> backend/privatekey.pem"
-sudo bash -c "echo \"-----END PRIVATE KEY-----\" >> backend/privatekey.pem"
-sudo chmod 400 backend/privatekey.pem
-
-echo "Creating SSL certificate from environment variable" 
+# Create SSL certificate from environment variable
+echo "Creating SSL certificate from \$SERVER"
 sudo bash -c "echo \"-----BEGIN CERTIFICATE-----\" > backend/server.crt"
 sudo bash -c "echo \"$SERVER\" >> backend/server.crt"
 sudo bash -c "echo \"-----END CERTIFICATE-----\" >> backend/server.crt"
 sudo chmod 400 backend/server.crt
 
-# Verify certificates exist 
-if [[ ! -f backend/privatekey.pem || ! -f backend/server.crt ]]; then   
-  echo "SSL certificate files could not be created."   
-  exit 1 
-fi  
+# Create SSL private key from environment variable
+echo "Creating private key from \$KEY"
+sudo bash -c "echo \"-----BEGIN PRIVATE KEY-----\" > backend/privatekey.pem"
+sudo bash -c "echo \"$KEY\" >> backend/privatekey.pem"
+sudo bash -c "echo \"-----END PRIVATE KEY-----\" >> backend/privatekey.pem"
+sudo chmod 400 backend/privatekey.pem
 
-# Install backend dependencies 
-cd backend 
-npm install  
+# Verify certificates exist
+if [[ ! -f backend/privatekey.pem || ! -f backend/server.crt ]]; then
+  echo "SSL certificate files could not be created."
+  exit 1
+fi
 
-# Build frontend 
-cd ../frontend 
-npm install --legacy-peer-deps 
-export REACT_APP_API_BASE=https://34.251.18.39:8443 
-npm run build  
+echo "SSL certificates created successfully."
 
-# Copy frontend build to backend 
-mkdir -p ../backend/build 
-cp -r build/* ../backend/build/  
+# Install backend dependencies
+echo "Installing backend dependencies..."
+cd backend
+npm install
 
-# Update CORS settings in .env file 
-echo "CORS_ORIGIN=*" > ../backend/.env 
-echo "PORT=8443" >> ../backend/.env  
+# Go to frontend and build it
+echo "Installing frontend dependencies and building..."
+cd ../frontend
+npm install --legacy-peer-deps
+export REACT_APP_API_BASE=https://34.251.18.39:8443
+npm run build
 
-# Start the app with PM2 
-cd ../backend 
-pm2 start server.js --name book_app 
+# Copy frontend build to backend
+echo "Copying frontend build to backend..."
+mkdir -p ../backend/build
+cp -r build/* ../backend/build/
+
+# Update .env for backend
+echo "Updating backend .env file..."
+cat > ../backend/.env <<EOL
+CORS_ORIGIN=*
+PORT=8443
+NODE_ENV=production
+SSL_KEY_PATH=./privatekey.pem
+SSL_CERT_PATH=./server.crt
+EOL
+
+# Start app with PM2
+cd ../backend
+echo "Starting app with PM2..."
+pm2 start server.js --name book_app
 pm2 save
+
+echo "Deployment complete."
