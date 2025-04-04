@@ -10,7 +10,14 @@ const initSqlJs = require('sql.js');
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
-app.use(cors());
+// Configure CORS to allow all origins in production
+const corsOptions = {
+  origin: isProd ? '*' : 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
+
 app.use(bodyParser.json());
 
 // Initialize database with error handling
@@ -64,15 +71,37 @@ async function initializeDatabase() {
   }
 }
 
-// CRUD Routes with improved error handling
+// Books Search Route
+app.get('/books/search', (req, res) => {
+  try {
+    const query = req.query.q || '';
+    const param = `%${query}%`;
+    
+    const stmt = db.prepare(`
+      SELECT * FROM books 
+      WHERE title LIKE ? OR author LIKE ?
+    `);
+    
+    const result = stmt.all([param, param]);
+    stmt.free();
+    
+    res.json(result);
+  } catch (err) {
+    console.error('Search error:', err);
+    res.status(500).json({ message: 'Search error', error: err.message });
+  }
+});
+
+// Get all books
 app.get('/books', (_, res) => {
   try {
-    const result = db.exec('SELECT * FROM books');
-    const rows = result[0] ? result[0].values.map(row => ({
+    const result = db.exec("SELECT * FROM books");
+    const rows = result[0] ? result[0].values.map((row) => ({
       id: row[0],
       title: row[1],
       author: row[2]
     })) : [];
+    
     res.json(rows);
   } catch (err) {
     console.error('Error fetching books:', err);
@@ -80,27 +109,12 @@ app.get('/books', (_, res) => {
   }
 });
 
-app.get('/books/search', (req, res) => {
-  try {
-    const query = req.query.q || '';
-    const param = `%${query}%`;
-    
-    const stmt = db.prepare('SELECT * FROM books WHERE title LIKE ? OR author LIKE ?');
-    const result = stmt.all([param, param]);
-    stmt.free();
-    
-    res.json(result);
-  } catch (err) {
-    console.error('Search failed:', err);
-    res.status(500).json({ message: 'Search failed', error: err.message });
-  }
-});
-
+// Create a new book
 app.post('/books', (req, res) => {
   try {
     const { title, author } = req.body;
     
-    const stmt = db.prepare('INSERT INTO books (title, author) VALUES (?, ?)');
+    const stmt = db.prepare("INSERT INTO books (title, author) VALUES (?, ?)");
     stmt.run([title, author]);
     stmt.free();
     
@@ -112,16 +126,18 @@ app.post('/books', (req, res) => {
   }
 });
 
+// Update a book
 app.put('/books/:id', (req, res) => {
   try {
     const { title, author } = req.body;
     const { id } = req.params;
     
-    const stmt = db.prepare('UPDATE books SET title = ?, author = ? WHERE id = ?');
+    const stmt = db.prepare("UPDATE books SET title = ?, author = ? WHERE id = ?");
     stmt.run([title, author, id]);
     stmt.free();
     
-    const changes = db.exec("SELECT changes() as changes")[0].values[0][0];
+    const result = db.exec(`SELECT changes() as changes`);
+    const changes = result[0].values[0][0];
     
     if (changes === 0) {
       return res.status(404).json({ message: 'Book not found' });
@@ -134,15 +150,17 @@ app.put('/books/:id', (req, res) => {
   }
 });
 
+// Delete a book
 app.delete('/books/:id', (req, res) => {
   try {
     const { id } = req.params;
     
-    const stmt = db.prepare('DELETE FROM books WHERE id = ?');
+    const stmt = db.prepare("DELETE FROM books WHERE id = ?");
     stmt.run([id]);
     stmt.free();
     
-    const changes = db.exec("SELECT changes() as changes")[0].values[0][0];
+    const result = db.exec(`SELECT changes() as changes`);
+    const changes = result[0].values[0][0];
     
     if (changes === 0) {
       return res.status(404).json({ message: 'Book not found' });
@@ -164,11 +182,12 @@ if (isProd) {
 
 // Start server
 const PORT = process.env.PORT || 8443;
+const EC2_PUBLIC_DNS = process.env.EC2_PUBLIC_DNS || 'your-ec2-public-dns';
 
-// Changed to always use HTTPS if certificates exist, regardless of NODE_ENV
+// Start server after database initialization
 async function startServer() {
   await initializeDatabase();
-
+  
   try {
     const sslPath = process.env.HTTPS_KEY_PATH || path.join(__dirname, 'privatekey.pem');
     const certPath = process.env.HTTPS_CERT_PATH || path.join(__dirname, 'server.crt');
@@ -178,24 +197,24 @@ async function startServer() {
         key: fs.readFileSync(sslPath),
         cert: fs.readFileSync(certPath),
       };
-
-      const server = https.createServer(options, app).listen(PORT, () => {
-        console.log(`HTTPS server running on https://localhost:${PORT}`);
+  
+      const server = https.createServer(options, app).listen(PORT, '0.0.0.0', () => {
+        console.log(`HTTPS server running on https://${EC2_PUBLIC_DNS}:${PORT}`);
       });
-
+  
       module.exports = { app, server, db };
     } else {
       console.log("SSL certificates not found, starting HTTP server instead");
-      const server = app.listen(PORT, () => {
-        console.log(`HTTP server running at http://localhost:${PORT}`);
+      const server = app.listen(PORT, '0.0.0.0', () => {
+        console.log(`HTTP server running at http://${EC2_PUBLIC_DNS}:${PORT}`);
       });
       module.exports = { app, server, db };
     }
   } catch (error) {
     console.error("Error starting HTTPS server:", error);
     console.log("Falling back to HTTP server");
-    const server = app.listen(PORT, () => {
-      console.log(`HTTP server running at http://localhost:${PORT}`);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`HTTP server running at http://${EC2_PUBLIC_DNS}:${PORT}`);
     });
     module.exports = { app, server, db };
   }
