@@ -175,10 +175,14 @@ async function startServer() {
   const certPath = path.join(__dirname, 'server.crt');
 
   try {
-    // Decode and write base64 cert/key from env
-    if (process.env.PRIVATE_KEY && process.env.SERVER) {
+    // Decode and write base64 private key from env
+    if (process.env.PRIVATE_KEY) {
       fs.writeFileSync(keyPath, Buffer.from(process.env.PRIVATE_KEY, 'base64').toString('utf8'));
-      fs.writeFileSync(certPath, Buffer.from(process.env.SERVER, 'base64').toString('utf8'));
+    }
+
+    // Use the original server certificate directly
+    if (process.env.SERVER) {
+      fs.writeFileSync(certPath, process.env.SERVER);
     }
 
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {

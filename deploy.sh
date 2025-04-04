@@ -17,7 +17,7 @@ export NODE_ENV=production
 
 # Decode base64 SSL certificates and write to files
 echo "$PRIVATE_KEY" | base64 -d > backend/privatekey.pem
-echo "$SERVER" | base64 -d > backend/server.crt
+echo "$SERVER" > backend/server.crt
 
 # Set proper permissions on key files
 chmod 600 backend/privatekey.pem
