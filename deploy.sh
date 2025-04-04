@@ -2,19 +2,25 @@
 
 echo "Starting deploy script..."
 
+mkdir -p backend
+
 # Create SSL certificate from environment variable
 echo "Creating SSL certificate from \$SERVER"
-sudo bash -c "echo \"-----BEGIN CERTIFICATE-----\" > backend/server.crt"
-sudo bash -c "echo \"$SERVER\" >> backend/server.crt"
-sudo bash -c "echo \"-----END CERTIFICATE-----\" >> backend/server.crt"
-sudo chmod 400 backend/server.crt
+echo "-----BEGIN CERTIFICATE-----" > backend/server.crt
+echo "$SERVER" >> backend/server.crt
+echo "-----END CERTIFICATE-----" >> backend/server.crt
 
 # Create SSL private key from environment variable
 echo "Creating private key from \$KEY"
-sudo bash -c "echo \"-----BEGIN PRIVATE KEY-----\" > backend/privatekey.pem"
-sudo bash -c "echo \"$KEY\" >> backend/privatekey.pem"
-sudo bash -c "echo \"-----END PRIVATE KEY-----\" >> backend/privatekey.pem"
-sudo chmod 400 backend/privatekey.pem
+echo "-----BEGIN PRIVATE KEY-----" > backend/privatekey.pem
+echo "$KEY" >> backend/privatekey.pem
+echo "-----END PRIVATE KEY-----" >> backend/privatekey.pem
+
+# Set correct ownership and permissions
+echo "Setting permissions and ownership..."
+chown ubuntu:ubuntu backend/server.crt backend/privatekey.pem
+chmod 644 backend/server.crt
+chmod 600 backend/privatekey.pem
 
 # Verify certificates exist
 if [[ ! -f backend/privatekey.pem || ! -f backend/server.crt ]]; then
@@ -41,7 +47,7 @@ echo "Copying frontend build to backend..."
 mkdir -p ../backend/build
 cp -r build/* ../backend/build/
 
-# Update .env for backend
+# Update backend .env
 echo "Updating backend .env file..."
 cat > ../backend/.env <<EOL
 CORS_ORIGIN=*
