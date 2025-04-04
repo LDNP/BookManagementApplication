@@ -143,8 +143,8 @@ const PORT = process.env.PORT || 8443;
 
 // Changed to always use HTTPS if certificates exist, regardless of NODE_ENV
 try {
-  const sslPath = path.join(__dirname, 'private.pem'); // Changed from privatekey.pem to private.pem
-  const certPath = path.join(__dirname, 'server.crt');
+  const sslPath = process.env.HTTPS_KEY_PATH || path.join(__dirname, 'privatekey.pem');
+  const certPath = process.env.HTTPS_CERT_PATH || path.join(__dirname, 'server.crt');
   
   if (fs.existsSync(sslPath) && fs.existsSync(certPath)) {
     const options = {
