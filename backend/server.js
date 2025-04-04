@@ -180,9 +180,9 @@ async function startServer() {
       fs.writeFileSync(keyPath, Buffer.from(process.env.PRIVATE_KEY, 'base64').toString('utf8'));
     }
 
-    // Use the original server certificate directly from env (already decoded)
-    if (process.env.SERVER) {
-      fs.writeFileSync(certPath, process.env.SERVER);
+    // Decode base64 server certificate from env
+  if (process.env.SERVER) {
+  fs.writeFileSync(certPath, Buffer.from(process.env.SERVER, 'base64').toString('utf8'));
     }
 
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
