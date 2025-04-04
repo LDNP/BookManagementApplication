@@ -13,9 +13,22 @@ pm2 stop book_app || true
 # Set environment
 export NODE_ENV=production
 
-# Make sure certs exist
+# Create SSL certificates from environment variables
+echo "Creating SSL private key from environment variable"
+echo "-----BEGIN PRIVATE KEY-----" > backend/privatekey.pem
+echo "$PRIVATE_KEY" >> backend/privatekey.pem
+echo "-----END PRIVATE KEY-----" >> backend/privatekey.pem
+chmod 400 backend/privatekey.pem
+
+echo "Creating SSL certificate from environment variable"
+echo "-----BEGIN CERTIFICATE-----" > backend/server.crt
+echo "$SERVER" >> backend/server.crt
+echo "-----END CERTIFICATE-----" >> backend/server.crt
+chmod 400 backend/server.crt
+
+# Verify certificates exist
 if [[ ! -f backend/privatekey.pem || ! -f backend/server.crt ]]; then
-  echo "SSL certificate files not found. Please ensure they're in backend/"
+  echo "SSL certificate files could not be created."
   exit 1
 fi
 
@@ -32,6 +45,10 @@ npm run build
 # Copy frontend build to backend
 mkdir -p ../backend/build
 cp -r build/* ../backend/build/
+
+# Update CORS settings in .env file
+echo "CORS_ORIGIN=*" > ../backend/.env
+echo "PORT=8443" >> ../backend/.env
 
 # Start the app with PM2
 cd ../backend

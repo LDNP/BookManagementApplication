@@ -10,8 +10,9 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
+// More flexible CORS configuration using environment variables
 const corsOptions = {
-  origin: 'https://34.251.18.39:8443',
+  origin: process.env.CORS_ORIGIN || 'https://34.251.18.39:8443',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
@@ -63,20 +64,25 @@ async function initializeDatabase() {
   }
 }
 
+// Fixed search endpoint that uses db.exec instead of stmt.all
 app.get('/books/search', (req, res) => {
   try {
     const query = req.query.q || '';
     const param = `%${query}%`;
-
-    const stmt = db.prepare(`
+    
+    // Use direct SQL execution instead of prepared statements
+    const result = db.exec(`
       SELECT * FROM books 
-      WHERE title LIKE ? OR author LIKE ?
+      WHERE title LIKE '${param}' OR author LIKE '${param}'
     `);
-
-    const result = stmt.all([param, param]);
-    stmt.free();
-
-    res.json(result);
+    
+    const rows = result[0] ? result[0].values.map((row) => ({
+      id: row[0],
+      title: row[1],
+      author: row[2]
+    })) : [];
+    
+    res.json(rows);
   } catch (err) {
     console.error('Search error:', err);
     res.status(500).json({ message: 'Search error', error: err.message });
@@ -166,13 +172,15 @@ if (isProd) {
   app.get('*', (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
 }
 
+// Allow port to be configurable via environment variable
 const PORT = process.env.PORT || 8443;
 
 async function startServer() {
   await initializeDatabase();
 
-  const keyPath = path.resolve(__dirname, 'privatekey.pem');
-  const certPath = path.resolve(__dirname, 'server.crt');
+  // Make certificate paths configurable via environment variables
+  const keyPath = process.env.SSL_KEY_PATH || path.resolve(__dirname, 'privatekey.pem');
+  const certPath = process.env.SSL_CERT_PATH || path.resolve(__dirname, 'server.crt');
 
   try {
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
