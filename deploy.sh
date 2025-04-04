@@ -11,8 +11,8 @@ cd ~/BookManagementApplication || exit 1
 
 # Add SSL certificates
 cd backend
-echo $PRIVATE_KEY > privatekey.pem
-echo $SERVER > server.crt
+echo "$PRIVATE_KEY" > privatekey.pem
+echo "$SERVER" > server.crt
 
 # Stop the current running application (if running)
 pm2 stop book_app || true
