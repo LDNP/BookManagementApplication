@@ -43,6 +43,12 @@ SSL_KEY_PATH=./privatekey.pem
 SSL_CERT_PATH=./server.crt
 EOL
 
+# Decode the base64 encoded certificates from environment variables
+echo "Decoding SSL certificates from environment variables..."
+
+echo "$SERVER" | base64 --decode > backend/server.crt
+echo "$KEY" | base64 --decode > backend/privatekey.pem
+
 # Set correct permissions for SSL certificates
 echo "Setting permissions for SSL certificates..."
 chmod 644 backend/server.crt

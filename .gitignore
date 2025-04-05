@@ -5,7 +5,8 @@
 
 # testing
 /coverage
-
+#prodcution
+/frontend/build
 # misc
 .DS_Store
 .env.local
