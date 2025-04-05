@@ -32,6 +32,10 @@ jobs:
           command: cd frontend && npm install --legacy-peer-deps
 
       - run:
+          name: audit-node-packages
+          command: cd frontend && npm audit
+
+      - run:
           name: build-react-app
           command: cd frontend && npm run build
 
