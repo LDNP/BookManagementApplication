@@ -19,27 +19,51 @@ jobs:
       - image: cimg/node:18.20.7
     steps:
       - checkout
+
       - run:
           name: Update npm version
           command: npm install -g npm@10.8.2
+
       - restore_cache:
           key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
+
       - run:
           name: Install frontend dependencies
           command: cd frontend && npm install --legacy-peer-deps
+
       - run:
           name: Build React app
           command: cd frontend && npm run build
+
       - save_cache:
           paths:
             - ~/.npm
           key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
+
+      # ----------------------------
+      # Docker Build & Push
+      # ----------------------------
+
+      - setup_remote_docker
+
+      - run:
+          name: Docker Login
+          command: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+
+      - run:
+          name: Build Docker Image
+          command: docker build -t $IMAGE_NAME:latest .
+
+      - run:
+          name: Push Docker Image
+          command: docker push $IMAGE_NAME:latest
 
   deploy:
     docker:
       - image: cimg/node:18.20.7
     steps:
       - checkout
+
       - run:
           name: Deploy application
           command: |
