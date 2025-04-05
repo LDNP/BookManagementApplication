@@ -25,10 +25,11 @@ echo "SSL certificates created successfully."
 echo "Installing backend dependencies..."
 cd backend
 npm install
+cd ..
 
 # Go to frontend and build it
 echo "Installing frontend dependencies and building..."
-cd ../frontend
+cd frontend
 npm install --legacy-peer-deps
 
 export REACT_APP_API_BASE=https://34.251.18.39:8443
@@ -40,14 +41,13 @@ if [[ ! -f build/index.html ]]; then
   exit 1
 fi
 
-# Copy frontend build to backend
+# ✅ Copy frontend build to backend with absolute path
 echo "Copying frontend build to backend..."
-mkdir -p ../backend/build
-cp -r build/* ../backend/build/
+cp -r ~/BookManagementApplication/frontend/build/* ~/BookManagementApplication/backend/build/
 
 # Update backend .env
 echo "Updating backend .env file..."
-cat > ../backend/.env <<EOL
+cat > ~/BookManagementApplication/backend/.env <<EOL
 CORS_ORIGIN=*
 PORT=8443
 NODE_ENV=production
@@ -56,7 +56,7 @@ SSL_CERT_PATH=./server.crt
 EOL
 
 # Start or restart the app with PM2
-cd ../backend
+cd ~/BookManagementApplication/backend
 echo "Starting app with PM2..."
 pm2 restart book_app || pm2 start server.js --name book_app
 pm2 save
