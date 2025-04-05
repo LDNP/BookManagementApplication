@@ -55,5 +55,6 @@ jobs:
               export KEY=$PRIVATE_KEY;
               rm -rf BookManagementApplication/;
               git clone https://github.com/LDNP/BookManagementApplication.git;
-              chmod +x BookManagementApplication/deploy.sh;
-              bash BookManagementApplication/deploy.sh"
+              cd BookManagementApplication;
+              chmod +x deploy.sh;
+              bash deploy.sh"
