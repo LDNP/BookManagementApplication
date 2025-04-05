@@ -37,12 +37,7 @@ SSL_KEY_PATH=./privatekey.pem
 SSL_CERT_PATH=./server.crt
 EOL
 
-# Install the SSL certificate files directly from the environment variables
-echo "Creating SSL certificate and private key from environment variables"
-echo "$SERVER" > backend/server.crt
-echo "$KEY" > backend/privatekey.pem
-
-# Set correct permissions for the certs
+# Set correct permissions for SSL certificates
 echo "Setting permissions for SSL certificates..."
 chmod 644 backend/server.crt
 chmod 600 backend/privatekey.pem
