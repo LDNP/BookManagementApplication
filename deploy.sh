@@ -2,8 +2,14 @@
 
 echo "Starting deploy script..."
 
-# Clean previous build and install dependencies
-rm -rf backend/build
+# Check if frontend build exists before cleaning the backend/build folder
+if [ -d "frontend/build" ] && [ -f "frontend/build/index.html" ]; then
+    echo "Frontend build exists. Proceeding with deployment."
+    rm -rf backend/build
+else
+    echo "Frontend build directory is missing or incomplete. Skipping clean-up of backend/build."
+    exit 1  # Or you could handle this differently, depending on your needs
+fi
 
 # Install backend dependencies
 echo "Installing backend dependencies..."
