@@ -34,19 +34,12 @@ jobs:
           paths:
             - ~/.npm
           key: dependency-cache-{{ checksum "frontend/package-lock.json" }}
-      - persist_to_workspace:
-          root: . 
-          paths:
-            - frontend/build
-            - backend
-            - deploy.sh
 
   deploy:
     docker:
       - image: cimg/node:18.20.7
     steps:
-      - attach_workspace:
-          at: ./ # Attach the workspace
+      - checkout
       - run:
           name: Deploy application
           command: |

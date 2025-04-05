@@ -2,14 +2,8 @@
 
 echo "Starting deploy script..."
 
-# Check if frontend build exists before cleaning the backend/build folder
-if [ -d "frontend/build" ] && [ -f "frontend/build/index.html" ]; then
-    echo "Frontend build exists. Proceeding with deployment."
-    rm -rf backend/build
-else
-    echo "Frontend build directory is missing or incomplete. Skipping clean-up of backend/build."
-    exit 1  # Or you could handle this differently, depending on your needs
-fi
+# Navigate to the project directory
+cd BookManagementApplication
 
 # Install backend dependencies
 echo "Installing backend dependencies..."
@@ -24,18 +18,20 @@ npm install --legacy-peer-deps
 export REACT_APP_API_BASE=https://34.251.18.39:8443
 npm run build
 
-if [[ ! -f build/index.html ]]; then
-  echo "Build output missing index.html — stopping deploy."
+# Check if the frontend build was successful
+if [ ! -d "build" ] || [ ! -f "build/index.html" ]; then
+  echo "Frontend build failed. Deployment aborted."
   exit 1
 fi
 
 # Copy frontend build to backend
 echo "Copying frontend build to backend..."
-cp -r frontend/build/* backend/build/
+rm -rf ../backend/build  # Remove the existing backend build directory
+cp -r build ../backend/  # Copy the new frontend build to the backend directory
 
 # Set up the environment variables
 echo "Updating backend .env file..."
-cat > backend/.env <<EOL
+cat > ../backend/.env <<EOL
 CORS_ORIGIN=*
 PORT=8443
 NODE_ENV=production
@@ -43,19 +39,21 @@ SSL_KEY_PATH=./privatekey.pem
 SSL_CERT_PATH=./server.crt
 EOL
 
+# Navigate to the backend directory
+cd ../backend
+
 # Decode the base64 encoded certificates from environment variables
 echo "Decoding SSL certificates from environment variables..."
-
-echo "$SERVER" | base64 --decode > backend/server.crt
-echo "$KEY" | base64 --decode > backend/privatekey.pem
+echo "$SERVER" | base64 --decode > server.crt
+echo "$KEY" | base64 --decode > privatekey.pem
 
 # Set correct permissions for SSL certificates
 echo "Setting permissions for SSL certificates..."
-chmod 644 backend/server.crt
-chmod 600 backend/privatekey.pem
+chmod 644 server.crt
+chmod 600 privatekey.pem
 
 # Verify certificates exist
-if [[ ! -f backend/privatekey.pem || ! -f backend/server.crt ]]; then
+if [ ! -f privatekey.pem ] || [ ! -f server.crt ]; then
   echo "SSL certificate files could not be created."
   exit 1
 fi
@@ -63,7 +61,6 @@ fi
 echo "SSL certificates created successfully."
 
 # Start or restart the app with PM2
-cd backend
 echo "Starting app with PM2..."
 pm2 restart book_app || pm2 start server.js --name book_app
 pm2 save
