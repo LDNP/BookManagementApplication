@@ -19,6 +19,16 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
+// ✅ Add secure headers for all responses
+app.use((req, res, next) => {
+  res.set('X-Frame-Options', 'DENY');
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Content-Security-Policy', "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
+  next();
+});
+
 let db;
 let SQL;
 
@@ -29,14 +39,12 @@ function processCertificates(keyPath, certPath) {
       let privatekey = fs.readFileSync(keyPath, "utf8");
       let cert = fs.readFileSync(certPath, "utf8");
 
-      // Process Private Key
       const privateKeyHeader = "-----BEGIN PRIVATE KEY-----";
       const privateKeyFooter = "-----END PRIVATE KEY-----";
       privatekey = privatekey.split(privateKeyHeader)[1];
       privatekey = privatekey.split(privateKeyFooter)[0];
       privatekey = privateKeyHeader + "\n" + privatekey.replace(/ /g, "\n") + privateKeyFooter + "\n";
 
-      // Process Certificate
       const certHeader = "-----BEGIN CERTIFICATE-----";
       const certFooter = "-----END CERTIFICATE-----";
       cert = cert.split(certHeader)[1];
@@ -45,8 +53,7 @@ function processCertificates(keyPath, certPath) {
 
       return { key: privatekey, cert: cert };
     }
-    
-    // Always return original files
+
     return {
       key: fs.readFileSync(keyPath),
       cert: fs.readFileSync(certPath)
@@ -99,24 +106,21 @@ async function initializeDatabase() {
   }
 }
 
-// Fixed search endpoint that uses db.exec instead of stmt.all
 app.get('/books/search', (req, res) => {
   try {
     const query = req.query.q || '';
     const param = `%${query}%`;
-    
-    // Use direct SQL execution instead of prepared statements
     const result = db.exec(`
       SELECT * FROM books 
       WHERE title LIKE '${param}' OR author LIKE '${param}'
     `);
-    
+
     const rows = result[0] ? result[0].values.map((row) => ({
       id: row[0],
       title: row[1],
       author: row[2]
     })) : [];
-    
+
     res.json(rows);
   } catch (err) {
     console.error('Search error:', err);
@@ -201,19 +205,20 @@ app.delete('/books/:id', (req, res) => {
   }
 });
 
+// Serve static files (e.g., sitemap.xml, robots.txt)
+app.use(express.static(path.join(__dirname, 'public')));
+
 if (isProd) {
   const buildPath = path.join(__dirname, 'build');
   app.use(express.static(buildPath));
   app.get('*', (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
 }
 
-// Allow port to be configurable via environment variable
 const PORT = process.env.PORT || 8443;
 
 async function startServer() {
   await initializeDatabase();
 
-  // Make certificate paths configurable via environment variables
   const keyPath = process.env.SSL_KEY_PATH || path.resolve(__dirname, 'privatekey.pem');
   const certPath = process.env.SSL_CERT_PATH || path.resolve(__dirname, 'server.crt');
 
