@@ -1,15 +1,13 @@
-#!/bin/bash
-
 echo "Starting deploy script..."
 
 mkdir -p backend
 
-# Write raw SSL certificate and key to files
+# Write SSL certificate and key from base64 environment variables
 echo "Creating SSL certificate and private key from environment variables"
-echo "$SERVER" > backend/server.crt
-echo "$KEY" > backend/privatekey.pem
+echo "$SERVER" | base64 -d > backend/server.crt
+echo "$KEY" | base64 -d > backend/privatekey.pem
 
-# Set correct permissions and ownership
+# Set correct permissions
 echo "Setting permissions and ownership..."
 chown ubuntu:ubuntu backend/server.crt backend/privatekey.pem
 chmod 644 backend/server.crt
