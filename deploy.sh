@@ -24,12 +24,23 @@ if [ ! -d "build" ] || [ ! -f "build/index.html" ]; then
    exit 1
 fi
 
-# Ensure backend build directory exists
+# Ensure backend build directory exists and is empty
+rm -rf ../backend/build
 mkdir -p ../backend/build
 
 # Copy frontend build to backend with verbose output
 echo "Copying frontend build to backend..."
 cp -rv build/* ../backend/build/
+
+# Verify build was copied
+if [ ! -f ../backend/build/index.html ]; then
+   echo "Failed to copy frontend build to backend."
+   exit 1
+fi
+
+# Reformat certificates to ensure proper line breaks
+sed -i 's/\r$//' ~/privatekey.pem
+sed -i 's/\r$//' ~/server.crt
 
 # Copy certificates to backend
 echo "Copying SSL certificates to backend..."
