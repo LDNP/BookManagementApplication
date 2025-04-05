@@ -22,6 +22,41 @@ app.use(bodyParser.json());
 let db;
 let SQL;
 
+// Certificate processing function
+function processCertificates(keyPath, certPath) {
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      let privatekey = fs.readFileSync(keyPath, "utf8");
+      let cert = fs.readFileSync(certPath, "utf8");
+
+      // Process Private Key
+      const privateKeyHeader = "-----BEGIN PRIVATE KEY-----";
+      const privateKeyFooter = "-----END PRIVATE KEY-----";
+      privatekey = privatekey.split(privateKeyHeader)[1];
+      privatekey = privatekey.split(privateKeyFooter)[0];
+      privatekey = privateKeyHeader + "\n" + privatekey.replace(/ /g, "\n") + privateKeyFooter + "\n";
+
+      // Process Certificate
+      const certHeader = "-----BEGIN CERTIFICATE-----";
+      const certFooter = "-----END CERTIFICATE-----";
+      cert = cert.split(certHeader)[1];
+      cert = cert.split(certFooter)[0];
+      cert = certHeader + "\n" + cert.replace(/ /g, "\n") + certFooter + "\n";
+
+      return { key: privatekey, cert: cert };
+    }
+    
+    // Always return original files
+    return {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+  } catch (error) {
+    console.error("Error processing certificates:", error);
+    return null;
+  }
+}
+
 async function initializeDatabase() {
   try {
     SQL = await initSqlJs();
@@ -184,35 +219,40 @@ async function startServer() {
 
   try {
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
-      const options = {
-        key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath),
-      };
+      const processedCertificates = processCertificates(keyPath, certPath);
 
-      const server = https.createServer(options, app).listen(PORT, '0.0.0.0', () => {
-        console.log(`HTTPS server running on port ${PORT}`);
-      });
+      if (processedCertificates) {
+        const options = {
+          key: processedCertificates.key,
+          cert: processedCertificates.cert,
+        };
 
-      module.exports = { app, server, db };
+        const server = https.createServer(options, app).listen(PORT, '0.0.0.0', () => {
+          console.log(`HTTPS server running on port ${PORT}`);
+        });
+
+        module.exports = { app, server, db };
+      } else {
+        console.log("Failed to process SSL certificates, falling back to HTTP server");
+        fallbackToHttpServer();
+      }
     } else {
       console.log("SSL certificates not found, starting HTTP server instead");
-
-      const server = app.listen(PORT, '0.0.0.0', () => {
-        console.log(`HTTP server running on port ${PORT}`);
-      });
-
-      module.exports = { app, server, db };
+      fallbackToHttpServer();
     }
   } catch (error) {
     console.error("Error starting HTTPS server:", error);
     console.log("Falling back to HTTP server");
-
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`HTTP server running on port ${PORT}`);
-    });
-
-    module.exports = { app, server, db };
+    fallbackToHttpServer();
   }
+}
+
+function fallbackToHttpServer() {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`HTTP server running on port ${PORT}`);
+  });
+
+  module.exports = { app, server, db };
 }
 
 startServer();
