@@ -72,6 +72,12 @@ jobs:
           name: start-docker-container
           command: docker start integration_app
 
+      - run:
+          name: run-owasp-zap-scanner
+          command: |
+            ip_address=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' integration_app)
+            docker run --network container:integration_app ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$ip_address:8443 -r zap-report.html || true
+
   deploy:
     docker:
       - image: cimg/node:18.20.7
