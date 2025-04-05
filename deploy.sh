@@ -30,8 +30,15 @@ npm install
 echo "Installing frontend dependencies and building..."
 cd ../frontend
 npm install --legacy-peer-deps
+
 export REACT_APP_API_BASE=https://34.251.18.39:8443
-npm run build
+
+npm run build || { echo "React build failed"; exit 1; }
+
+if [[ ! -f build/index.html ]]; then
+  echo "Build output missing index.html — stopping deploy."
+  exit 1
+fi
 
 # Copy frontend build to backend
 echo "Copying frontend build to backend..."
