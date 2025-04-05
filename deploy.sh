@@ -41,7 +41,7 @@ if [[ ! -f build/index.html ]]; then
   exit 1
 fi
 
-# ✅ Copy frontend build to backend with absolute path
+# Copy frontend build to backend with absolute path
 echo "Copying frontend build to backend..."
 cp -r ~/BookManagementApplication/frontend/build/* ~/BookManagementApplication/backend/build/
 
