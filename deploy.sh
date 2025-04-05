@@ -1,81 +1,39 @@
 #!/bin/bash
 
-echo "Starting deploy script..."
+echo "Starting Docker-based deployment..."
 
-# Navigate to the project directory
-cd BookManagementApplication
-
-# Install backend dependencies
-echo "Installing backend dependencies..."
-cd backend
-npm install
-cd ..
-
-# Install frontend dependencies and build it
-echo "Installing frontend dependencies and building..."
-cd frontend
-npm install --legacy-peer-deps
-export REACT_APP_API_BASE=https://34.251.18.39:8443
-npm run build
-
-# Check if the frontend build was successful
-if [ ! -d "build" ] || [ ! -f "build/index.html" ]; then
-   echo "Frontend build failed. Deployment aborted."
-   exit 1
+# Stop and remove any existing container from the same image
+CURRENT_INSTANCE=$(docker ps -a -q --filter ancestor="$IMAGE_NAME" --format="{{.ID}}")
+if [ "$CURRENT_INSTANCE" ]; then
+  echo "Stopping and removing existing container using image: $IMAGE_NAME"
+  docker rm $(docker stop $CURRENT_INSTANCE)
 fi
 
-# Ensure backend build directory exists and is empty
-rm -rf ../backend/build
-mkdir -p ../backend/build
-
-# Copy frontend build to backend with verbose output
-echo "Copying frontend build to backend..."
-cp -rv build/* ../backend/build/
-
-# Verify build was copied
-if [ ! -f ../backend/build/index.html ]; then
-   echo "Failed to copy frontend build to backend."
-   exit 1
+# Remove container with name node_app if it exists
+CONTAINER_EXISTS=$(docker ps -a | grep $CONTAINER_NAME)
+if [ "$CONTAINER_EXISTS" ]; then
+  echo "Removing old container named $CONTAINER_NAME"
+  docker rm $CONTAINER_NAME
 fi
 
-# Reformat certificates to ensure proper line breaks
-sed -i 's/\r$//' ~/privatekey.pem
-sed -i 's/\r$//' ~/server.crt
+# Pull the latest image
+echo "Pulling image: $IMAGE_NAME"
+docker pull $IMAGE_NAME
 
-# Copy certificates to backend
-echo "Copying SSL certificates to backend..."
-cp ~/privatekey.pem ../backend/privatekey.pem
-cp ~/server.crt ../backend/server.crt
+# Create the container (but don't start yet)
+echo "Creating container..."
+docker create -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
 
-# Set up the environment variables
-echo "Updating backend .env file..."
-cat > ../backend/.env <<EOL
-CORS_ORIGIN=*
-PORT=8443
-NODE_ENV=production
-SSL_KEY_PATH=./privatekey.pem
-SSL_CERT_PATH=./server.crt
-EOL
+# Write certs from environment to files
+echo "$PRIVATE_KEY" > privatekey.pem
+echo "$SERVER" > server.crt
 
-# Navigate to the backend directory
-cd ../backend
+# Copy certs into the container
+docker cp privatekey.pem $CONTAINER_NAME:/app/backend/privatekey.pem
+docker cp server.crt $CONTAINER_NAME:/app/backend/server.crt
 
-# Verify certificates and build exist
-if [ ! -f privatekey.pem ] || [ ! -f server.crt ]; then
-   echo "SSL certificate files not found."
-   exit 1
-fi
-
-if [ ! -d "build" ] || [ ! -f "build/index.html" ]; then
-   echo "Frontend build not found in backend directory."
-   exit 1
-fi
-
-echo "SSL certificates and frontend build verified successfully."
-
-# Start or restart the app with PM2
-echo "Starting app with PM2..."
-pm2 restart book_app || pm2 start server.js --name book_app
-pm2 save
+# Start the container
+echo "Starting container..."
+docker start $CONTAINER_NAME
 
 echo "Deployment complete."
