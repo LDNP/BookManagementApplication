@@ -1,39 +1,44 @@
 #!/bin/bash
 
+set -e
+
+IMAGE_NAME="lisadavis552/bookmanagementapplication"
+CONTAINER_NAME="node_app"
+CERT_PATH="/home/ubuntu"
+KEY_FILE="privatekey.pem"
+CERT_FILE="server.crt"
+SSL_KEY_CONTAINER_PATH="/app/backend/privatekey.pem"
+SSL_CERT_CONTAINER_PATH="/app/backend/server.crt"
+
 echo "Starting Docker-based deployment..."
 
-# Stop and remove any existing container from the same image
-CURRENT_INSTANCE=$(docker ps -a -q --filter ancestor="$IMAGE_NAME" --format="{{.ID}}")
-if [ "$CURRENT_INSTANCE" ]; then
-  echo "Stopping and removing existing container using image: $IMAGE_NAME"
-  docker rm $(docker stop $CURRENT_INSTANCE)
+# Stop and remove existing container
+if docker ps -a --format '{{.Names}}' | grep -Eq "^$CONTAINER_NAME$"; then
+  echo "Removing existing container: $CONTAINER_NAME"
+  docker rm -f $CONTAINER_NAME
 fi
 
-# Remove container with name node_app if it exists
-CONTAINER_EXISTS=$(docker ps -a | grep $CONTAINER_NAME)
-if [ "$CONTAINER_EXISTS" ]; then
-  echo "Removing old container named $CONTAINER_NAME"
-  docker rm $CONTAINER_NAME
+# Build the Docker image
+echo "Building Docker image: $IMAGE_NAME"
+docker build -t $IMAGE_NAME .
+
+# Write certs if provided in environment
+if [[ -n "$PRIVATE_KEY" && -n "$SERVER" ]]; then
+  echo "$PRIVATE_KEY" > $CERT_PATH/$KEY_FILE
+  echo "$SERVER" > $CERT_PATH/$CERT_FILE
+  chmod 644 $CERT_PATH/$KEY_FILE $CERT_PATH/$CERT_FILE
 fi
 
-# Pull the latest image
-echo "Pulling image: $IMAGE_NAME"
-docker pull $IMAGE_NAME
-
-# Create the container (but don't start yet)
-echo "Creating container..."
-docker create -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
-
-# Write certs from environment to files
-echo "$PRIVATE_KEY" > privatekey.pem
-echo "$SERVER" > server.crt
-
-# Copy certs into the container
-docker cp privatekey.pem $CONTAINER_NAME:/app/backend/privatekey.pem
-docker cp server.crt $CONTAINER_NAME:/app/backend/server.crt
-
-# Start the container
-echo "Starting container..."
-docker start $CONTAINER_NAME
+# Run the container
+echo "Running container: $CONTAINER_NAME"
+docker run -d \
+  --name $CONTAINER_NAME \
+  -p 8443:8443 \
+  -v $CERT_PATH/$KEY_FILE:$SSL_KEY_CONTAINER_PATH \
+  -v $CERT_PATH/$CERT_FILE:$SSL_CERT_CONTAINER_PATH \
+  -e SSL_KEY_PATH=$SSL_KEY_CONTAINER_PATH \
+  -e SSL_CERT_PATH=$SSL_CERT_CONTAINER_PATH \
+  --restart always \
+  $IMAGE_NAME
 
 echo "Deployment complete."

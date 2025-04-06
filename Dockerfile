@@ -1,5 +1,5 @@
-# ---------- Stage 1: Build React Frontend ----------
-    FROM node:18.20.7 as frontend-builder
+# ---------- Stage 1: Build Frontend ----------
+    FROM node:18.20.7 AS frontend-builder
 
     WORKDIR /app/frontend
     
@@ -14,24 +14,21 @@
     
     WORKDIR /app
     
-    # Copy backend files
+    # Copy backend dependencies and install
     COPY backend/package*.json ./backend/
-    RUN cd backend && npm install
+    RUN cd backend && npm install --legacy-peer-deps
     
+    # Copy backend code
     COPY backend ./backend
     
-    # Copy built frontend into backend's build folder
+    # Copy built frontend into backend build folder
     COPY --from=frontend-builder /app/frontend/build ./backend/build
     
-    # Set working directory to backend
     WORKDIR /app/backend
     
-    # Set environment variables
     ENV NODE_ENV=production
     ENV PORT=8443
     
-    # Expose the backend port
     EXPOSE 8443
     
-    # Start the backend server
     CMD ["node", "server.js"]
