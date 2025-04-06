@@ -136,7 +136,7 @@ function App() {
       <hr className="divider" />
 
       <div className="list-section">
-        <h2>Books List</h2>
+        <h2>Books</h2>
 
         <input
           type="text"
