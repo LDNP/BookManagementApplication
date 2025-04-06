@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Use a default base API URL if not set in environment
-const API = process.env.REACT_APP_API_BASE || 'https://34.251.18.39:8443';
+const API = process.env.REACT_APP_API_BASE || 'http://18.202.19.128:8443';
 
 function App() {
   const [allBooks, setAllBooks] = useState([]); // Store all books
