@@ -32,23 +32,25 @@ let SQL;
 
 function processCertificates(keyPath, certPath) {
   try {
-    let key = fs.readFileSync(keyPath, 'utf8');
-    let cert = fs.readFileSync(certPath, 'utf8');
+    let key = fs.readFileSync(keyPath, 'utf8').trim();
+    let cert = fs.readFileSync(certPath, 'utf8').trim();
 
-    if (!key.includes('\n')) {
-      const keyHeader = "-----BEGIN PRIVATE KEY-----";
-      const keyFooter = "-----END PRIVATE KEY-----";
-      key = key.split(keyHeader)[1];
-      key = key.split(keyFooter)[0];
-      key = keyHeader + "\n" + key.replace(/ /g, "\n") + "\n" + keyFooter + "\n";
+    if (key.includes('BEGIN PRIVATE KEY') && key.includes('END PRIVATE KEY') && !key.includes('\n')) {
+      const keyBody = key
+        .replace('-----BEGIN PRIVATE KEY-----', '')
+        .replace('-----END PRIVATE KEY-----', '')
+        .replace(/ /g, '\n')
+        .trim();
+      key = `-----BEGIN PRIVATE KEY-----\n${keyBody}\n-----END PRIVATE KEY-----\n`;
     }
 
-    if (!cert.includes('\n')) {
-      const certHeader = "-----BEGIN CERTIFICATE-----";
-      const certFooter = "-----END CERTIFICATE-----";
-      cert = cert.split(certHeader)[1];
-      cert = cert.split(certFooter)[0];
-      cert = certHeader + "\n" + cert.replace(/ /g, "\n") + "\n" + certFooter + "\n";
+    if (cert.includes('BEGIN CERTIFICATE') && cert.includes('END CERTIFICATE') && !cert.includes('\n')) {
+      const certBody = cert
+        .replace('-----BEGIN CERTIFICATE-----', '')
+        .replace('-----END CERTIFICATE-----', '')
+        .replace(/ /g, '\n')
+        .trim();
+      cert = `-----BEGIN CERTIFICATE-----\n${certBody}\n-----END CERTIFICATE-----\n`;
     }
 
     return { key, cert };
@@ -99,13 +101,11 @@ app.get('/books/search', (req, res) => {
     const query = req.query.q || '';
     const param = `%${query}%`;
     const result = db.exec(`SELECT * FROM books WHERE title LIKE '${param}' OR author LIKE '${param}'`);
-
     const rows = result[0] ? result[0].values.map((row) => ({
       id: row[0],
       title: row[1],
       author: row[2]
     })) : [];
-
     res.json(rows);
   } catch (err) {
     res.status(500).json({ message: 'Search error', error: err.message });
@@ -120,7 +120,6 @@ app.get('/books', (_, res) => {
       title: row[1],
       author: row[2]
     })) : [];
-
     res.json(rows);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching books', error: err.message });
@@ -130,11 +129,9 @@ app.get('/books', (_, res) => {
 app.post('/books', (req, res) => {
   try {
     const { title, author } = req.body;
-
     const stmt = db.prepare("INSERT INTO books (title, author) VALUES (?, ?)");
     stmt.run([title, author]);
     stmt.free();
-
     const lastId = db.exec("SELECT last_insert_rowid() as id")[0].values[0][0];
     res.status(201).json({ id: lastId, title, author });
   } catch (err) {
@@ -146,18 +143,14 @@ app.put('/books/:id', (req, res) => {
   try {
     const { title, author } = req.body;
     const { id } = req.params;
-
     const stmt = db.prepare("UPDATE books SET title = ?, author = ? WHERE id = ?");
     stmt.run([title, author, id]);
     stmt.free();
-
     const result = db.exec(`SELECT changes() as changes`);
     const changes = result[0].values[0][0];
-
     if (changes === 0) {
       return res.status(404).json({ message: 'Book not found' });
     }
-
     res.status(200).json({ id: parseInt(id), title, author });
   } catch (err) {
     res.status(500).json({ message: 'Update error', error: err.message });
@@ -167,18 +160,14 @@ app.put('/books/:id', (req, res) => {
 app.delete('/books/:id', (req, res) => {
   try {
     const { id } = req.params;
-
     const stmt = db.prepare("DELETE FROM books WHERE id = ?");
     stmt.run([id]);
     stmt.free();
-
     const result = db.exec(`SELECT changes() as changes`);
     const changes = result[0].values[0][0];
-
     if (changes === 0) {
       return res.status(404).json({ message: 'Book not found' });
     }
-
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ message: 'Delete error', error: err.message });
