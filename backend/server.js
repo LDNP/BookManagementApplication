@@ -19,7 +19,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
-// ✅ Add secure headers for all responses
+//  Add secure headers for all responses
 app.use((req, res, next) => {
   res.set('X-Frame-Options', 'DENY');
   res.set('X-Content-Type-Options', 'nosniff');

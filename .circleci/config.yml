@@ -87,7 +87,7 @@ jobs:
       - run:
           name: deploy-application
           command: |
-            ssh -p 5454 -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "
+            ssh -p 5454 -i StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "
               export SERVER=\"$SERVER\";
               export IMAGE_NAME=\"$IMAGE_NAME\";
               export CONTAINER_NAME=\"$CONTAINER_NAME\";
