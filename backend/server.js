@@ -12,7 +12,7 @@ const isProd = process.env.NODE_ENV === 'production';
 
 // More flexible CORS configuration using environment variables
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'https://34.251.18.39:8443',
+  origin: process.env.CORS_ORIGIN || 'https://18.202.19.128:8443',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
