@@ -10,7 +10,6 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
-// More flexible CORS configuration using environment variables
 const corsOptions = {
   origin: process.env.CORS_ORIGIN || 'https://18.202.19.128:8443',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -19,7 +18,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
-// Add secure headers for all responses
 app.use((req, res, next) => {
   res.set('X-Frame-Options', 'DENY');
   res.set('X-Content-Type-Options', 'nosniff');
@@ -32,15 +30,30 @@ app.use((req, res, next) => {
 let db;
 let SQL;
 
-// FIXED: Certificate processing function
 function processCertificates(keyPath, certPath) {
   try {
-    return {
-      key: fs.readFileSync(keyPath, 'utf8'),
-      cert: fs.readFileSync(certPath, 'utf8')
-    };
+    let key = fs.readFileSync(keyPath, 'utf8');
+    let cert = fs.readFileSync(certPath, 'utf8');
+
+    if (!key.includes('\n')) {
+      const keyHeader = "-----BEGIN PRIVATE KEY-----";
+      const keyFooter = "-----END PRIVATE KEY-----";
+      key = key.split(keyHeader)[1];
+      key = key.split(keyFooter)[0];
+      key = keyHeader + "\n" + key.replace(/ /g, "\n") + "\n" + keyFooter + "\n";
+    }
+
+    if (!cert.includes('\n')) {
+      const certHeader = "-----BEGIN CERTIFICATE-----";
+      const certFooter = "-----END CERTIFICATE-----";
+      cert = cert.split(certHeader)[1];
+      cert = cert.split(certFooter)[0];
+      cert = certHeader + "\n" + cert.replace(/ /g, "\n") + "\n" + certFooter + "\n";
+    }
+
+    return { key, cert };
   } catch (error) {
-    console.error("Error reading SSL certificates:", error);
+    console.error("Error reading or formatting SSL certificates:", error);
     return null;
   }
 }
@@ -71,17 +84,11 @@ async function initializeDatabase() {
       sampleBooks.forEach(([title, author]) => {
         try {
           stmt.run([title, author]);
-        } catch (err) {
-          console.error('Error inserting sample book:', err);
-        }
+        } catch (err) {}
       });
       stmt.free();
       db.run("COMMIT");
-
-      console.log('Sample books inserted');
     }
-
-    console.log('Database initialized successfully');
   } catch (err) {
     console.error('Error initializing database:', err);
   }
@@ -91,10 +98,7 @@ app.get('/books/search', (req, res) => {
   try {
     const query = req.query.q || '';
     const param = `%${query}%`;
-    const result = db.exec(`
-      SELECT * FROM books 
-      WHERE title LIKE '${param}' OR author LIKE '${param}'
-    `);
+    const result = db.exec(`SELECT * FROM books WHERE title LIKE '${param}' OR author LIKE '${param}'`);
 
     const rows = result[0] ? result[0].values.map((row) => ({
       id: row[0],
@@ -104,7 +108,6 @@ app.get('/books/search', (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    console.error('Search error:', err);
     res.status(500).json({ message: 'Search error', error: err.message });
   }
 });
@@ -120,7 +123,6 @@ app.get('/books', (_, res) => {
 
     res.json(rows);
   } catch (err) {
-    console.error('Error fetching books:', err);
     res.status(500).json({ message: 'Error fetching books', error: err.message });
   }
 });
@@ -136,7 +138,6 @@ app.post('/books', (req, res) => {
     const lastId = db.exec("SELECT last_insert_rowid() as id")[0].values[0][0];
     res.status(201).json({ id: lastId, title, author });
   } catch (err) {
-    console.error('Insert error:', err);
     res.status(500).json({ message: 'Insert error', error: err.message });
   }
 });
@@ -159,7 +160,6 @@ app.put('/books/:id', (req, res) => {
 
     res.status(200).json({ id: parseInt(id), title, author });
   } catch (err) {
-    console.error('Update error:', err);
     res.status(500).json({ message: 'Update error', error: err.message });
   }
 });
@@ -181,12 +181,10 @@ app.delete('/books/:id', (req, res) => {
 
     res.status(204).send();
   } catch (err) {
-    console.error('Delete error:', err);
     res.status(500).json({ message: 'Delete error', error: err.message });
   }
 });
 
-// Serve static files (e.g., sitemap.xml, robots.txt)
 app.use(express.static(path.join(__dirname, 'public')));
 
 if (isProd) {
@@ -210,7 +208,7 @@ async function startServer() {
       if (processedCertificates) {
         const options = {
           key: processedCertificates.key,
-          cert: processedCertificates.cert,
+          cert: processedCertificates.cert
         };
 
         const server = https.createServer(options, app).listen(PORT, '0.0.0.0', () => {
@@ -219,16 +217,12 @@ async function startServer() {
 
         module.exports = { app, server, db };
       } else {
-        console.log("Failed to process SSL certificates, falling back to HTTP server");
         fallbackToHttpServer();
       }
     } else {
-      console.log("SSL certificates not found, starting HTTP server instead");
       fallbackToHttpServer();
     }
   } catch (error) {
-    console.error("Error starting HTTPS server:", error);
-    console.log("Falling back to HTTP server");
     fallbackToHttpServer();
   }
 }
