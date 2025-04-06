@@ -24,8 +24,8 @@ docker build -t $IMAGE_NAME .
 
 # Write certs if provided in environment
 if [[ -n "$PRIVATE_KEY" && -n "$SERVER" ]]; then
-  echo "$PRIVATE_KEY" > $CERT_PATH/$KEY_FILE
-  echo "$SERVER" > $CERT_PATH/$CERT_FILE
+  printf "%b" "$PRIVATE_KEY" > $CERT_PATH/$KEY_FILE
+  printf "%b" "$SERVER" > $CERT_PATH/$CERT_FILE
   chmod 644 $CERT_PATH/$KEY_FILE $CERT_PATH/$CERT_FILE
 fi
 

@@ -32,7 +32,7 @@ app.use((req, res, next) => {
 let db;
 let SQL;
 
-// ✅ FIXED: Certificate processing function
+// FIXED: Certificate processing function
 function processCertificates(keyPath, certPath) {
   try {
     return {

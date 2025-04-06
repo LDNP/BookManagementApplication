@@ -55,21 +55,23 @@ jobs:
           command: docker push $IMAGE_NAME:latest
 
       - run:
-          name: set-environment-variables
-          command: echo "$SERVER_CRT" > server.crt && echo "$PRIVATE_KEY_PEM" > privatekey.pem
+          name: write-cert-files
+          command: |
+            printf "%b" "$PRIVATE_KEY_PEM" > privatekey.pem
+            printf "%b" "$SERVER_CRT" > server.crt
 
       - run:
-          name: build-docker-image-for-integration-environment
+          name: create-container-for-zap
           command: docker create -p 8443:8443 --name integration_app $IMAGE_NAME
 
       - run:
-          name: copy-server-cert-and-private-key-across
+          name: copy-server-cert-and-private-key
           command: |
-            docker cp ./privatekey.pem integration_app:/app/backend/privatekey.pem
-            docker cp ./server.crt integration_app:/app/backend/server.crt
+            docker cp privatekey.pem integration_app:/app/backend/privatekey.pem
+            docker cp server.crt integration_app:/app/backend/server.crt
 
       - run:
-          name: start-docker-container
+          name: start-integration-container
           command: docker start integration_app
 
       - run:
@@ -96,4 +98,6 @@ jobs:
               git clone https://github.com/LDNP/BookManagementApplication.git;
               cd BookManagementApplication;
               chmod +x deploy.sh;
+              printf \"%b\" \"\$PRIVATE_KEY\" > /home/ubuntu/privatekey.pem;
+              printf \"%b\" \"\$SERVER\" > /home/ubuntu/server.crt;
               ./deploy.sh"
