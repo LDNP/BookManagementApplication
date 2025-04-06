@@ -19,7 +19,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
-//  Add secure headers for all responses
+// Add secure headers for all responses
 app.use((req, res, next) => {
   res.set('X-Frame-Options', 'DENY');
   res.set('X-Content-Type-Options', 'nosniff');
@@ -32,34 +32,15 @@ app.use((req, res, next) => {
 let db;
 let SQL;
 
-// Certificate processing function
+// ✅ FIXED: Certificate processing function
 function processCertificates(keyPath, certPath) {
   try {
-    if (process.env.NODE_ENV == 'production') {
-      let privatekey = fs.readFileSync(keyPath, "utf8");
-      let cert = fs.readFileSync(certPath, "utf8");
-
-      const privateKeyHeader = "-----BEGIN PRIVATE KEY-----";
-      const privateKeyFooter = "-----END PRIVATE KEY-----";
-      privatekey = privatekey.split(privateKeyHeader)[1];
-      privatekey = privatekey.split(privateKeyFooter)[0];
-      privatekey = privateKeyHeader + "\n" + privatekey.replace(/ /g, "\n") + privateKeyFooter + "\n";
-
-      const certHeader = "-----BEGIN CERTIFICATE-----";
-      const certFooter = "-----END CERTIFICATE-----";
-      cert = cert.split(certHeader)[1];
-      cert = cert.split(certFooter)[0];
-      cert = certHeader + "\n" + cert.replace(/ /g, "\n") + certFooter + "\n";
-
-      return { key: privatekey, cert: cert };
-    }
-
     return {
-      key: fs.readFileSync(keyPath),
-      cert: fs.readFileSync(certPath)
+      key: fs.readFileSync(keyPath, 'utf8'),
+      cert: fs.readFileSync(certPath, 'utf8')
     };
   } catch (error) {
-    console.error("Error processing certificates:", error);
+    console.error("Error reading SSL certificates:", error);
     return null;
   }
 }
